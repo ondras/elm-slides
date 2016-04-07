@@ -1,10 +1,9 @@
 MAIN := main.js
-SRC := src/main.elm
 
 all: $(MAIN)
 
-$(MAIN): src/main.elm
-	elm make $^ --output $@
+$(MAIN): $(wildcard src/*.elm)
+	elm make src/Main.elm --output $@
 
 clean:
 	rm $(MAIN)

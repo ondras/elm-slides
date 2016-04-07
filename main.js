@@ -11298,66 +11298,123 @@ Elm.Markdown.make = function (_elm) {
                                  ,toHtmlWith: toHtmlWith
                                  ,toElementWith: toElementWith};
 };
+Elm.Actions = Elm.Actions || {};
+Elm.Actions.make = function (_elm) {
+   "use strict";
+   _elm.Actions = _elm.Actions || {};
+   if (_elm.Actions.values) return _elm.Actions.values;
+   var _U = Elm.Native.Utils.make(_elm),
+   $Basics = Elm.Basics.make(_elm),
+   $Debug = Elm.Debug.make(_elm),
+   $Html = Elm.Html.make(_elm),
+   $List = Elm.List.make(_elm),
+   $Maybe = Elm.Maybe.make(_elm),
+   $Result = Elm.Result.make(_elm),
+   $Signal = Elm.Signal.make(_elm);
+   var _op = {};
+   var GoRel = function (a) {    return {ctor: "GoRel",_0: a};};
+   var GoAbs = function (a) {    return {ctor: "GoAbs",_0: a};};
+   var Response = function (a) {    return {ctor: "Response",_0: a};};
+   var NoOp = {ctor: "NoOp"};
+   return _elm.Actions.values = {_op: _op,NoOp: NoOp,Response: Response,GoAbs: GoAbs,GoRel: GoRel};
+};
+Elm.Keys = Elm.Keys || {};
+Elm.Keys.make = function (_elm) {
+   "use strict";
+   _elm.Keys = _elm.Keys || {};
+   if (_elm.Keys.values) return _elm.Keys.values;
+   var _U = Elm.Native.Utils.make(_elm),
+   $Actions = Elm.Actions.make(_elm),
+   $Basics = Elm.Basics.make(_elm),
+   $Debug = Elm.Debug.make(_elm),
+   $Keyboard = Elm.Keyboard.make(_elm),
+   $List = Elm.List.make(_elm),
+   $Maybe = Elm.Maybe.make(_elm),
+   $Result = Elm.Result.make(_elm),
+   $Set = Elm.Set.make(_elm),
+   $Signal = Elm.Signal.make(_elm);
+   var _op = {};
+   var next = $Set.fromList(_U.list([32,34,39,40]));
+   var prev = $Set.fromList(_U.list([33,37,38]));
+   var keysToAction = function (keys) {
+      return _U.cmp($Set.size(A2($Set.intersect,keys,prev)),0) > 0 ? $Actions.GoRel(-1) : _U.cmp($Set.size(A2($Set.intersect,keys,next)),
+      0) > 0 ? $Actions.GoRel(1) : $Actions.NoOp;
+   };
+   var signal = A2($Signal.map,keysToAction,$Keyboard.keysDown);
+   return _elm.Keys.values = {_op: _op,signal: signal};
+};
+Elm.Parser = Elm.Parser || {};
+Elm.Parser.make = function (_elm) {
+   "use strict";
+   _elm.Parser = _elm.Parser || {};
+   if (_elm.Parser.values) return _elm.Parser.values;
+   var _U = Elm.Native.Utils.make(_elm),
+   $Actions = Elm.Actions.make(_elm),
+   $Basics = Elm.Basics.make(_elm),
+   $Debug = Elm.Debug.make(_elm),
+   $List = Elm.List.make(_elm),
+   $Markdown = Elm.Markdown.make(_elm),
+   $Maybe = Elm.Maybe.make(_elm),
+   $Regex = Elm.Regex.make(_elm),
+   $Result = Elm.Result.make(_elm),
+   $Signal = Elm.Signal.make(_elm);
+   var _op = {};
+   var pattern = $Regex.regex("-+8<-+");
+   var parse = function (str) {    return $Actions.Response(A2($List.map,$Markdown.toHtml,A3($Regex.split,$Regex.All,pattern,str)));};
+   return _elm.Parser.values = {_op: _op,parse: parse};
+};
 Elm.Main = Elm.Main || {};
 Elm.Main.make = function (_elm) {
    "use strict";
    _elm.Main = _elm.Main || {};
    if (_elm.Main.values) return _elm.Main.values;
    var _U = Elm.Native.Utils.make(_elm),
+   $Actions = Elm.Actions.make(_elm),
    $Basics = Elm.Basics.make(_elm),
    $Debug = Elm.Debug.make(_elm),
    $History = Elm.History.make(_elm),
    $Html = Elm.Html.make(_elm),
    $Html$Attributes = Elm.Html.Attributes.make(_elm),
    $Http = Elm.Http.make(_elm),
-   $Keyboard = Elm.Keyboard.make(_elm),
+   $Keys = Elm.Keys.make(_elm),
    $List = Elm.List.make(_elm),
-   $Markdown = Elm.Markdown.make(_elm),
    $Maybe = Elm.Maybe.make(_elm),
-   $Regex = Elm.Regex.make(_elm),
+   $Parser = Elm.Parser.make(_elm),
    $Result = Elm.Result.make(_elm),
-   $Set = Elm.Set.make(_elm),
    $Signal = Elm.Signal.make(_elm),
    $String = Elm.String.make(_elm),
    $Task = Elm.Task.make(_elm);
    var _op = {};
    var slide = F3(function (current,index,node) {
-      return A2($Html.section,_U.list([$Html$Attributes.classList(_U.list([{ctor: "_Tuple2",_0: "active",_1: _U.eq(index,current)}]))]),_U.list([node]));
+      return A2($Html.section,
+      _U.list([$Html$Attributes.classList(_U.list([{ctor: "_Tuple2",_0: "active",_1: _U.eq(index,current)},{ctor: "_Tuple2",_0: "slide",_1: true}]))]),
+      _U.list([node]));
    });
    var view = function (data) {    var slides = A2($List.indexedMap,slide(data.index),data.nodes);return A2($Html.div,_U.list([]),slides);};
    var display = F2(function (current,index) {    return _U.eq(current,index) ? "block" : "none";});
-   var next = $Set.fromList(_U.list([32,34,39,40]));
-   var prev = $Set.fromList(_U.list([33,37,38]));
-   var GoRel = function (a) {    return {ctor: "GoRel",_0: a};};
-   var GoAbs = function (a) {    return {ctor: "GoAbs",_0: a};};
-   var Response = function (a) {    return {ctor: "Response",_0: a};};
-   var NoOp = {ctor: "NoOp"};
-   var response = $Signal.mailbox(NoOp);
-   var processResponse = function (str) {
-      return A2($Signal.send,response.address,Response(A2($List.map,$Markdown.toHtml,A3($Regex.split,$Regex.All,$Regex.regex("-+8<-+"),str))));
-   };
-   var request = Elm.Native.Task.make(_elm).perform(A2($Task.andThen,$Http.getString("data.md"),processResponse));
-   var keyboardSignal = function () {
-      var kbToAction = function (keys) {
-         return _U.cmp($Set.size(A2($Set.intersect,keys,prev)),0) > 0 ? GoRel(-1) : _U.cmp($Set.size(A2($Set.intersect,keys,next)),0) > 0 ? GoRel(1) : NoOp;
-      };
-      return A2($Signal.map,kbToAction,$Keyboard.keysDown);
-   }();
    var historySignal = function () {
-      var hashToAction = function (hash) {    return _U.eq(hash,"") ? NoOp : GoAbs(A2($Result.withDefault,0,$String.toInt(A2($String.dropLeft,1,hash))));};
+      var hashToAction = function (hash) {
+         return _U.eq(hash,"") ? $Actions.NoOp : $Actions.GoAbs(A2($Result.withDefault,0,$String.toInt(A2($String.dropLeft,1,hash))));
+      };
       return $Signal.dropRepeats(A2($Signal.map,hashToAction,$History.hash));
    }();
-   var actions = $Signal.mergeMany(_U.list([response.signal,keyboardSignal,historySignal]));
+   var response = $Signal.mailbox($Actions.NoOp);
+   var actions = $Signal.mergeMany(_U.list([response.signal,$Keys.signal,historySignal]));
+   var request = Elm.Native.Task.make(_elm).perform(A2($Task.andThen,
+   $Http.getString("data.md"),
+   function (_p0) {
+      return A2($Signal.send,response.address,$Parser.parse(_p0));
+   }));
    var Data = F2(function (a,b) {    return {nodes: a,index: b};});
    var init = A2(Data,_U.list([$Html.text("Loading…")]),0);
    var update = F2(function (action,data) {
       var clampIndex = function (i) {    return A3($Basics.clamp,0,$List.length(data.nodes) - 1,i);};
-      var _p0 = action;
-      switch (_p0.ctor)
+      var _p1 = action;
+      switch (_p1.ctor)
       {case "NoOp": return data;
-         case "Response": return A2(Data,_p0._0,0);
-         case "GoAbs": return _U.update(data,{index: clampIndex(_p0._0)});
-         default: return _U.update(data,{index: clampIndex(data.index + _p0._0)});}
+         case "Response": return A2(Data,_p1._0,0);
+         case "GoAbs": return _U.update(data,{index: clampIndex(_p1._0)});
+         default: return _U.update(data,{index: clampIndex(data.index + _p1._0)});}
    });
    var model = A3($Signal.foldp,update,init,actions);
    var currentSignal = function () {
@@ -11368,15 +11425,8 @@ Elm.Main.make = function (_elm) {
    var main = A2($Signal.map,view,model);
    return _elm.Main.values = {_op: _op
                              ,Data: Data
-                             ,NoOp: NoOp
-                             ,Response: Response
-                             ,GoAbs: GoAbs
-                             ,GoRel: GoRel
-                             ,prev: prev
-                             ,next: next
                              ,init: init
                              ,response: response
-                             ,keyboardSignal: keyboardSignal
                              ,actions: actions
                              ,model: model
                              ,historySignal: historySignal
@@ -11385,6 +11435,5 @@ Elm.Main.make = function (_elm) {
                              ,display: display
                              ,slide: slide
                              ,view: view
-                             ,processResponse: processResponse
                              ,main: main};
 };

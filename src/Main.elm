@@ -1,12 +1,11 @@
 import Html exposing (div, text, Html, section)
-import Html.Attributes exposing (classList)
+import Html.Attributes exposing (class, classList)
 import Task exposing (Task, andThen)
 import Http
-import Keyboard
-import Set
-import Regex
-import Markdown
+import Keys
 import History
+import Actions
+import Parser
 import String exposing (dropLeft, toInt)
 
 -- types
@@ -16,33 +15,16 @@ type alias Data = {
   index: Int
 }
 
-type Action = NoOp | Response (List Html) | GoAbs Int | GoRel Int
-
-prev = Set.fromList [33, 37, 38]  
-next = Set.fromList [32, 34, 39, 40]
-
 init =
   Data ([text "Loading…"]) 0
 
 -- signals, mailboxes
 
 response =
-  Signal.mailbox NoOp
-
-keyboardSignal = 
-  let
-    kbToAction keys =
-      if Set.size (Set.intersect keys prev) > 0 then
-        GoRel -1
-      else if Set.size (Set.intersect keys next) > 0 then
-        GoRel 1
-      else
-        NoOp
-  in
-    Signal.map kbToAction Keyboard.keysDown
+  Signal.mailbox Actions.NoOp
 
 actions =
-  Signal.mergeMany [ response.signal, keyboardSignal, historySignal ]
+  Signal.mergeMany [ response.signal, Keys.signal, historySignal ]
 
 model =
   Signal.foldp update init actions
@@ -53,9 +35,9 @@ historySignal =
   let
     hashToAction hash =
       if hash == "" then
-        NoOp
+        Actions.NoOp
       else
-        hash |> dropLeft 1 |> toInt |> (Result.withDefault 0) |> GoAbs
+        hash |> dropLeft 1 |> toInt |> (Result.withDefault 0) |> Actions.GoAbs
   in
     Signal.map hashToAction History.hash |> Signal.dropRepeats
 
@@ -77,16 +59,16 @@ update action data =
     clamp 0 (List.length data.nodes - 1) i 
   in
     case action of
-      NoOp ->
+      Actions.NoOp ->
         data
 
-      Response nodes ->
+      Actions.Response nodes ->
         Data nodes 0
       
-      GoAbs index ->
+      Actions.GoAbs index ->
         { data | index = clampIndex index }
 
-      GoRel diff ->
+      Actions.GoRel diff ->
         { data | index = clampIndex (data.index + diff) }
 
 -- view
@@ -99,7 +81,10 @@ display current index =
 
 slide current index node =
   section [
-    classList [ ("active", index == current) ]
+    classList [
+      ("active", index == current),
+      ("slide", True)
+    ]
   ] [ node ]
 
 view data =
@@ -109,19 +94,9 @@ view data =
   in    
     div [] slides
 
--- http
-
-processResponse str =
-  Regex.split (Regex.All) (Regex.regex "-+8<-+") str
-    |> List.map Markdown.toHtml
-    |> Response 
-    |> Signal.send response.address
-
 port request : Task Http.Error ()
 port request =
-  Http.getString "data.md" `andThen` processResponse
+  Http.getString "data.md" `andThen` (Parser.parse >> Signal.send response.address)
 
--- setup
 main =
   Signal.map view model
---  Signal.map text History.hash
