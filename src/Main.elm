@@ -1,102 +1,63 @@
-import Html exposing (div, text, Html, section)
-import Html.Attributes exposing (class, classList)
+import Html exposing (text, Html)
+
 import Task exposing (Task, andThen)
 import Http
-import Keys
-import History
+
+import Types
 import Actions
+import Keys
 import Parser
-import String exposing (dropLeft, toInt)
-
--- types
-
-type alias Data = {
-  nodes: List Html,
-  index: Int
-}
+import Hash
+import View
 
 init =
-  Data ([text "Loading…"]) 0
-
--- signals, mailboxes
+  Types.Data [] -1
 
 response =
   Signal.mailbox Actions.NoOp
 
 actions =
-  Signal.mergeMany [ response.signal, Keys.signal, historySignal ]
+  Signal.mergeMany [ response.signal, Keys.signal, Hash.signal ]
 
 model =
-  Signal.foldp update init actions
-
--- history
-
-historySignal =
-  let
-    hashToAction hash =
-      if hash == "" then
-        Actions.NoOp
-      else
-        hash |> dropLeft 1 |> toInt |> (Result.withDefault 0) |> Actions.GoAbs
-  in
-    Signal.map hashToAction History.hash |> Signal.dropRepeats
-
-currentSignal = 
-  let
-    modelToHash model =
-      ("#" ++ toString model.index)
-  in
-    Signal.map modelToHash model |> Signal.dropRepeats
-
-port history : Signal (Task error ())
-port history =
-  Signal.map History.setPath currentSignal
-
--- update 
+  Signal.foldp update init Hash.signal
+  
+clampIndex index slides =
+  if List.length slides > 0 then
+    clamp 0 (List.length slides - 1) index
+  else index
 
 update action data =
-  let clampIndex i =
-    clamp 0 (List.length data.nodes - 1) i 
-  in
-    case action of
-      Actions.NoOp ->
-        data
+  case (Debug.log "action" action) of
+    Actions.NoOp ->
+      data
 
-      Actions.Response nodes ->
-        Data nodes 0
-      
-      Actions.GoAbs index ->
-        { data | index = clampIndex index }
+    Actions.Response slides ->
+      { data |
+        slides = slides,
+        index = clampIndex data.index slides
+      }
+  
+    Actions.GoAbs index ->
+      { data |
+        index = clampIndex index data.slides
+      }
 
-      Actions.GoRel diff ->
-        { data | index = clampIndex (data.index + diff) }
+    Actions.GoRel diff ->
+      { data |
+        index = clampIndex (data.index + diff) data.slides
+      }
 
--- view
-
-display current index =
-  if current == index then
-    "block"
-  else
-    "none"
-
-slide current index node =
-  section [
-    classList [
-      ("active", index == current),
-      ("slide", True)
-    ]
-  ] [ node ]
-
-view data =
-  let
-    slides =
-      List.indexedMap (slide data.index) data.nodes 
-  in    
-    div [] slides
-
+{-
 port request : Task Http.Error ()
 port request =
   Http.getString "data.md" `andThen` (Parser.parse >> Signal.send response.address)
+-}
+
+
+port history : Signal (Task error ())
+port history =
+  Hash.tasks model
 
 main =
-  Signal.map view model
+  Signal.map View.all model

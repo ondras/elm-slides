@@ -1,0 +1,32 @@
+@import url(skin.css);
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+* {
+  box-sizing: inherit;
+}
+.slide {
+  transition: transform 500ms, filter 1000ms;
+  transform-origin: 0 0;
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+}
+.slide.active {
+  z-index: 1;
+}
+.slide:not(.active) {
+  transform: rotate(90deg);
+}
+.slide.active + .slide {
+  filter: blur(10px);
+}
+.active ~ .slide {
+  transform: none;
+  z-index: 0;
+}
