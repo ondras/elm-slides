@@ -9,32 +9,21 @@ import Keys
 import Parser
 import Hash
 import View
+import Title
 
-init =
-  Types.Data [] -1
-
-response =
-  Signal.mailbox Actions.NoOp
-
-actions =
-  Signal.mergeMany [ response.signal, Keys.signal, Hash.signal ]
-
-model =
-  Signal.foldp update init Hash.signal
-  
 clampIndex index slides =
   if List.length slides > 0 then
     clamp 0 (List.length slides - 1) index
   else index
 
 update action data =
-  case (Debug.log "action" action) of
+  case action of
     Actions.NoOp ->
       data
 
     Actions.Response slides ->
       { data |
-        slides = slides,
+        slides = Debug.log "slides" slides,
         index = clampIndex data.index slides
       }
   
@@ -48,16 +37,31 @@ update action data =
         index = clampIndex (data.index + diff) data.slides
       }
 
-{-
+
 port request : Task Http.Error ()
 port request =
   Http.getString "data.md" `andThen` (Parser.parse >> Signal.send response.address)
--}
-
 
 port history : Signal (Task error ())
 port history =
   Hash.tasks model
 
+port title : Signal String
+port title =
+  Title.title model
+
+init =
+  Types.Data [] -1
+
+response =
+  Signal.mailbox Actions.NoOp
+
+actions =
+  Signal.mergeMany [ response.signal, Keys.signal, Hash.signal ]
+
+model =
+  Signal.foldp update init actions
+  
 main =
   Signal.map View.all model
+--  Signal.foldp (\new _ -> text new) (text "nothing") History.hash

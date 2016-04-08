@@ -14,7 +14,6 @@ hashToAction hash =
       |> toInt
       |> Result.withDefault 0
       |> Actions.GoAbs
-      |> Debug.log "hash"
   
 signal =
   Signal.map hashToAction History.hash |> Signal.dropRepeats
