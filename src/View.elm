@@ -1,7 +1,7 @@
 module View (all) where
 
 import Html exposing (div, section)
-import Html.Attributes exposing (class, classList)
+import Html.Attributes exposing (classList)
 
 display current index =
   if current == index then

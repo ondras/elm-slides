@@ -11330,11 +11330,13 @@ Elm.Actions.make = function (_elm) {
    $Signal = Elm.Signal.make(_elm),
    $Types = Elm.Types.make(_elm);
    var _op = {};
+   var Last = {ctor: "Last"};
+   var First = {ctor: "First"};
    var GoRel = function (a) {    return {ctor: "GoRel",_0: a};};
    var GoAbs = function (a) {    return {ctor: "GoAbs",_0: a};};
    var Response = function (a) {    return {ctor: "Response",_0: a};};
    var NoOp = {ctor: "NoOp"};
-   return _elm.Actions.values = {_op: _op,NoOp: NoOp,Response: Response,GoAbs: GoAbs,GoRel: GoRel};
+   return _elm.Actions.values = {_op: _op,NoOp: NoOp,Response: Response,GoAbs: GoAbs,GoRel: GoRel,First: First,Last: Last};
 };
 Elm.Hash = Elm.Hash || {};
 Elm.Hash.make = function (_elm) {
@@ -11354,12 +11356,14 @@ Elm.Hash.make = function (_elm) {
    $Task = Elm.Task.make(_elm);
    var _op = {};
    var indexToTask = function (index) {
-      return _U.cmp(index,0) > -1 ? $History.setPath(A2($Basics._op["++"],"#",$Basics.toString(index))) : $Task.succeed({ctor: "_Tuple0"});
+      return _U.cmp(index,0) > -1 ? $History.setPath(A2($Basics._op["++"],"#",$Basics.toString(index + 1))) : $Task.succeed({ctor: "_Tuple0"});
    };
    var currentIndex = function (model) {    return $Signal.dropRepeats(A2($Signal.map,function (_) {    return _.index;},model));};
    var tasks = function (model) {    return A2($Signal.map,indexToTask,currentIndex(model));};
    var hashToAction = function (hash) {
-      return _U.eq(hash,"") ? $Actions.NoOp : $Actions.GoAbs(A2($Result.withDefault,0,$String.toInt(A2($String.dropLeft,1,hash))));
+      return _U.eq(hash,"") ? $Actions.NoOp : function (number) {
+         return $Actions.GoAbs(number - 1);
+      }(A2($Result.withDefault,1,$String.toInt(A2($String.dropLeft,1,hash))));
    };
    var signal = $Signal.dropRepeats(A2($Signal.map,hashToAction,$History.hash));
    return _elm.Hash.values = {_op: _op,signal: signal,tasks: tasks};
@@ -11381,10 +11385,10 @@ Elm.Keys.make = function (_elm) {
    $Signal = Elm.Signal.make(_elm);
    var _op = {};
    var next = $Set.fromList(_U.list([32,34,39,40]));
-   var prev = $Set.fromList(_U.list([33,37,38]));
+   var prev = $Set.fromList(_U.list([8,33,37,38]));
    var keysToAction = function (keys) {
-      return _U.cmp($Set.size(A2($Set.intersect,keys,prev)),0) > 0 ? $Actions.GoRel(-1) : _U.cmp($Set.size(A2($Set.intersect,keys,next)),
-      0) > 0 ? $Actions.GoRel(1) : $Actions.NoOp;
+      return A2($Set.member,36,keys) ? $Actions.First : A2($Set.member,35,keys) ? $Actions.Last : _U.cmp($Set.size(A2($Set.intersect,keys,prev)),
+      0) > 0 ? $Actions.GoRel(-1) : _U.cmp($Set.size(A2($Set.intersect,keys,next)),0) > 0 ? $Actions.GoRel(1) : $Actions.NoOp;
    };
    var signal = A2($Signal.map,keysToAction,$Keyboard.keysDown);
    return _elm.Keys.values = {_op: _op,signal: signal};
@@ -11407,6 +11411,7 @@ Elm.Parser.make = function (_elm) {
    $Types = Elm.Types.make(_elm);
    var _op = {};
    var lastSubmatch = function (match) {    return A2($Maybe.withDefault,$Maybe.Just(""),$List.head($List.reverse(match.submatches)));};
+   var options = _U.update($Markdown.defaultOptions,{smartypants: true});
    var pattern = {$break: $Regex.regex("\\n\\s*-+8<-+"),title: $Regex.regex("(\\n|^)\\s*#\\s+([^\\n]+)")};
    var title = function (str) {
       var matches = A3($Regex.find,$Regex.AtMost(1),pattern.title,str);
@@ -11417,7 +11422,7 @@ Elm.Parser.make = function (_elm) {
             return A2($Maybe.withDefault,"",lastSubmatch(_p0._0));
          }
    };
-   var slide = function (str) {    return A2($Types.Slide,title(str),$Markdown.toHtml(str));};
+   var slide = function (str) {    return A2($Types.Slide,title(str),A2($Markdown.toHtmlWith,options,str));};
    var parse = function (str) {    return $Actions.Response(A2($List.map,slide,A3($Regex.split,$Regex.All,pattern.$break,str)));};
    return _elm.Parser.values = {_op: _op,parse: parse};
 };
@@ -11459,7 +11464,14 @@ Elm.Title.make = function (_elm) {
    $Result = Elm.Result.make(_elm),
    $Signal = Elm.Signal.make(_elm);
    var _op = {};
-   var modelToTitle = function (model) {    var _p0 = $List.head(model.slides);if (_p0.ctor === "Nothing") {    return "";} else {    return _p0._0.title;}};
+   var modelToTitle = function (model) {
+      var _p0 = $List.head(model.slides);
+      if (_p0.ctor === "Nothing") {
+            return "";
+         } else {
+            return A2($Basics._op["++"],"(",A2($Basics._op["++"],$Basics.toString(model.index + 1),A2($Basics._op["++"],") ",_p0._0.title)));
+         }
+   };
    var title = function (model) {    return A2($Signal.map,modelToTitle,model);};
    return _elm.Title.values = {_op: _op,title: title};
 };
@@ -11499,9 +11511,11 @@ Elm.Main.make = function (_elm) {
       switch (_p1.ctor)
       {case "NoOp": return data;
          case "Response": var _p2 = _p1._0;
-           return _U.update(data,{slides: A2($Debug.log,"slides",_p2),index: A2(clampIndex,data.index,_p2)});
+           return _U.update(data,{slides: _p2,index: A2(clampIndex,data.index,_p2)});
          case "GoAbs": return _U.update(data,{index: A2(clampIndex,_p1._0,data.slides)});
-         default: return _U.update(data,{index: A2(clampIndex,data.index + _p1._0,data.slides)});}
+         case "GoRel": return _U.update(data,{index: A2(clampIndex,data.index + _p1._0,data.slides)});
+         case "First": return _U.update(data,{index: 0});
+         default: return _U.update(data,{index: $List.length(data.slides) - 1});}
    });
    var model = A3($Signal.foldp,update,init,actions);
    var history = Elm.Native.Task.make(_elm).performSignal("history",$Hash.tasks(model));

@@ -1,4 +1,69 @@
-.slide {
-	background-color: #fff;
-	border: 5px solid black;
+@import url(https://fonts.googleapis.com/css?family=Inconsolata:400,700|Raleway:400,700|Catamaran:400,700);
+
+body {
+	font-family: Raleway, sans-serif;
+}
+
+code, kbd {
+	font-family: Inconsolata, monospace;
+}
+
+kbd {
+	display: inline-block;
+	margin: 0 0.1em;
+	padding: 0.2em 0.6em;
+	border: 1px solid #ccc;
+	border-radius: 3px;
+}
+
+@media screen {
+	html {
+		font-size: 5vh;
+		line-height: 1.3;
+	}
+	
+	.slide {
+		color: #4F2512;
+		background-color: #E9CF92;
+	}
+	
+	kbd {
+		color: #333;
+		background-color: #f7f7f7;
+		box-shadow: 0 1px 0px rgba(0, 0, 0, 0.2), 0 0 0 2px #fff inset;
+	}
+
+	a {
+		color: #61301D;
+		font-weight: normal;
+	}
+	
+	h1 {
+		color: #E9CF92;
+		margin: 0;
+		background-color: #4F2512;
+		padding: 1rem;
+		padding-bottom: 1.3rem;
+		position: relative;
+	}
+
+	h1::after {
+		display: block;
+		content: "";
+		position: absolute;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		border-top: 0.3rem solid #904420;
+		border-bottom: 0.3rem solid #CA902C;
+	}
+
+	h1 ~ * {
+		margin-left: 1rem;
+		margin-right: 1rem;
+	}
+	
+	li:not(:first-child) {
+		margin-top: 0.3rem;
+	}
 }

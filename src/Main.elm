@@ -23,7 +23,7 @@ update action data =
 
     Actions.Response slides ->
       { data |
-        slides = Debug.log "slides" slides,
+        slides = slides,
         index = clampIndex data.index slides
       }
   
@@ -36,7 +36,16 @@ update action data =
       { data |
         index = clampIndex (data.index + diff) data.slides
       }
+      
+    Actions.First ->
+      { data |
+        index = 0
+      }
 
+    Actions.Last ->
+      { data |
+        index = List.length data.slides - 1
+      }
 
 port request : Task Http.Error ()
 port request =

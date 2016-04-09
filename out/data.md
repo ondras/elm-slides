@@ -1,14 +1,24 @@
-# Slide 1
+# elm-slides
 
-some text
+ - This is a sample presentation
+ - Interesting *stuff* inside, **right?**
+ - a - b -- c --- d e-f ...
 
---8<----
+<q>test html</q>
+
+aaa <kbd>Space</kbd> bbb
+
+--8<------
 
 # Slide 2
 
-some other text
+`test kodu`
 
---8<----
+```javascript
+var x = Function.prototype.x + 1;
+```
+
+--8<------
 
 # Slide 3
 

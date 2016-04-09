@@ -2,8 +2,11 @@ module Title (title) where
 
 modelToTitle model =
   case List.head model.slides of
-    Nothing -> ""
-    Just slide -> slide.title
+    Nothing -> 
+      ""
+
+    Just slide -> 
+      "(" ++ toString (model.index+1) ++ ") " ++ slide.title
 
 title model =
   Signal.map modelToTitle model

@@ -12,8 +12,8 @@ hashToAction hash =
     hash
       |> dropLeft 1
       |> toInt
-      |> Result.withDefault 0
-      |> Actions.GoAbs
+      |> Result.withDefault 1
+      |> (\number -> Actions.GoAbs (number-1))
   
 signal =
   Signal.map hashToAction History.hash |> Signal.dropRepeats
@@ -23,7 +23,7 @@ currentIndex model =
 
 indexToTask index =
   if index >= 0 then
-    History.setPath ("#" ++ toString index)
+    History.setPath ("#" ++ toString (index+1))
   else
     Task.succeed ()
   
