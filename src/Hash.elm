@@ -1,22 +1,27 @@
-module Hash (signal, tasks) where
+module Hash (signal, signal', tasks) where
 
 import History
 import Actions
 import Task
 import String exposing (dropLeft, toInt)
 
-hashToAction hash =
+toIndex hash =
+  dropLeft 1 hash
+    |> toInt
+    |> Result.withDefault 1
+    |> (\x -> x-1)
+
+toAction hash =
   if hash == "" then
     Actions.NoOp
   else
-    hash
-      |> dropLeft 1
-      |> toInt
-      |> Result.withDefault 1
-      |> (\number -> Actions.GoAbs (number-1))
+    Actions.GoAbs (toIndex hash)
+
+signal' =
+  Signal.map toIndex History.hash |> Signal.dropRepeats
   
 signal =
-  Signal.map hashToAction History.hash |> Signal.dropRepeats
+  Signal.map toAction History.hash |> Signal.dropRepeats
 
 currentIndex model = 
   Signal.map .index model |> Signal.dropRepeats

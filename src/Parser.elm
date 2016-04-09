@@ -34,4 +34,4 @@ slide str =
 parse str =
   Regex.split Regex.All pattern.break str
     |> List.map slide
-    |> Actions.Response 
+--    |> Actions.Response 
