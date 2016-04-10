@@ -13,9 +13,9 @@ keysToAction keys =
   else if Set.member 35 keys then
     Actions.Last
   else if Set.size (Set.intersect keys prev) > 0 then
-    Actions.GoRel -1
+    Actions.Prev
   else if Set.size (Set.intersect keys next) > 0 then
-    Actions.GoRel 1
+    Actions.Next
   else
     Actions.NoOp
 

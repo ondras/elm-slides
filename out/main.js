@@ -11332,11 +11332,12 @@ Elm.Actions.make = function (_elm) {
    var _op = {};
    var Last = {ctor: "Last"};
    var First = {ctor: "First"};
-   var GoRel = function (a) {    return {ctor: "GoRel",_0: a};};
-   var GoAbs = function (a) {    return {ctor: "GoAbs",_0: a};};
+   var Next = {ctor: "Next"};
+   var Prev = {ctor: "Prev"};
+   var Go = function (a) {    return {ctor: "Go",_0: a};};
    var Response = F2(function (a,b) {    return {ctor: "Response",_0: a,_1: b};});
    var NoOp = {ctor: "NoOp"};
-   return _elm.Actions.values = {_op: _op,NoOp: NoOp,Response: Response,GoAbs: GoAbs,GoRel: GoRel,First: First,Last: Last};
+   return _elm.Actions.values = {_op: _op,NoOp: NoOp,Response: Response,Go: Go,Prev: Prev,Next: Next,First: First,Last: Last};
 };
 Elm.Hash = Elm.Hash || {};
 Elm.Hash.make = function (_elm) {
@@ -11361,7 +11362,7 @@ Elm.Hash.make = function (_elm) {
    var currentIndex = function (model) {    return $Signal.dropRepeats(A2($Signal.map,function (_) {    return _.index;},model));};
    var tasks = function (model) {    return A2($Signal.map,indexToTask,currentIndex(model));};
    var toIndex = function (hash) {    return function (x) {    return x - 1;}(A2($Result.withDefault,1,$String.toInt(A2($String.dropLeft,1,hash))));};
-   var toAction = function (hash) {    return _U.eq(hash,"") ? $Actions.NoOp : $Actions.GoAbs(toIndex(hash));};
+   var toAction = function (hash) {    return _U.eq(hash,"") ? $Actions.NoOp : $Actions.Go(toIndex(hash));};
    var signal = $Signal.dropRepeats(A2($Signal.map,toAction,$History.hash));
    var signal$ = $Signal.dropRepeats(A2($Signal.map,toIndex,$History.hash));
    return _elm.Hash.values = {_op: _op,signal: signal,signal$: signal$,tasks: tasks};
@@ -11386,7 +11387,7 @@ Elm.Keys.make = function (_elm) {
    var prev = $Set.fromList(_U.list([8,33,37,38]));
    var keysToAction = function (keys) {
       return A2($Set.member,36,keys) ? $Actions.First : A2($Set.member,35,keys) ? $Actions.Last : _U.cmp($Set.size(A2($Set.intersect,keys,prev)),
-      0) > 0 ? $Actions.GoRel(-1) : _U.cmp($Set.size(A2($Set.intersect,keys,next)),0) > 0 ? $Actions.GoRel(1) : $Actions.NoOp;
+      0) > 0 ? $Actions.Prev : _U.cmp($Set.size(A2($Set.intersect,keys,next)),0) > 0 ? $Actions.Next : $Actions.NoOp;
    };
    var signal = A2($Signal.map,keysToAction,$Keyboard.keysDown);
    return _elm.Keys.values = {_op: _op,signal: signal};
@@ -11422,6 +11423,38 @@ Elm.Parser.make = function (_elm) {
    var slide = function (str) {    return A2($Types.Slide,title(str),A2($Markdown.toHtmlWith,options,str));};
    var parse = function (str) {    return A2($List.map,slide,A3($Regex.split,$Regex.All,pattern.$break,str));};
    return _elm.Parser.values = {_op: _op,parse: parse};
+};
+Elm.Request = Elm.Request || {};
+Elm.Request.make = function (_elm) {
+   "use strict";
+   _elm.Request = _elm.Request || {};
+   if (_elm.Request.values) return _elm.Request.values;
+   var _U = Elm.Native.Utils.make(_elm),
+   $Actions = Elm.Actions.make(_elm),
+   $Basics = Elm.Basics.make(_elm),
+   $Debug = Elm.Debug.make(_elm),
+   $Hash = Elm.Hash.make(_elm),
+   $Http = Elm.Http.make(_elm),
+   $List = Elm.List.make(_elm),
+   $Maybe = Elm.Maybe.make(_elm),
+   $Parser = Elm.Parser.make(_elm),
+   $Result = Elm.Result.make(_elm),
+   $Signal = Elm.Signal.make(_elm),
+   $Task = Elm.Task.make(_elm);
+   var _op = {};
+   var merge = F2(function (slides,action) {
+      var _p0 = action;
+      if (_p0.ctor === "Go") {
+            return A2($Actions.Response,slides,_p0._0);
+         } else {
+            return action;
+         }
+   });
+   var box = $Signal.mailbox(_U.list([]));
+   var hashOnResponse = A2($Signal.sampleOn,box.signal,$Hash.signal);
+   var signal = A3($Signal.map2,merge,box.signal,hashOnResponse);
+   var task = function (url) {    return A2($Task.andThen,$Http.getString(url),function (_p1) {    return A2($Signal.send,box.address,$Parser.parse(_p1));});};
+   return _elm.Request.values = {_op: _op,signal: signal,task: task};
 };
 Elm.View = Elm.View || {};
 Elm.View.make = function (_elm) {
@@ -11486,7 +11519,7 @@ Elm.Main.make = function (_elm) {
    $Keys = Elm.Keys.make(_elm),
    $List = Elm.List.make(_elm),
    $Maybe = Elm.Maybe.make(_elm),
-   $Parser = Elm.Parser.make(_elm),
+   $Request = Elm.Request.make(_elm),
    $Result = Elm.Result.make(_elm),
    $Signal = Elm.Signal.make(_elm),
    $Task = Elm.Task.make(_elm),
@@ -11494,40 +11527,33 @@ Elm.Main.make = function (_elm) {
    $Types = Elm.Types.make(_elm),
    $View = Elm.View.make(_elm);
    var _op = {};
-   var response = $Signal.mailbox(_U.list([]));
-   var hashOnResponse = A2($Signal.sampleOn,response.signal,$Hash.signal$);
-   var responseWithHash = A3($Signal.map2,$Actions.Response,response.signal,hashOnResponse);
-   var actions = $Signal.mergeMany(_U.list([responseWithHash,$Keys.signal,$Hash.signal]));
+   var actions = $Signal.mergeMany(_U.list([$Request.signal,$Keys.signal,$Hash.signal]));
    var init = A2($Types.Data,_U.list([]),-1);
-   var request = Elm.Native.Task.make(_elm).perform(A2($Task.andThen,
-   $Http.getString("data.md"),
-   function (_p0) {
-      return A2($Signal.send,response.address,$Parser.parse(_p0));
-   }));
+   var request = Elm.Native.Task.make(_elm).perform($Request.task("data.md"));
+   var newIndex = F3(function (oldIndex,action,slides) {
+      var _p0 = action;
+      switch (_p0.ctor)
+      {case "NoOp": return oldIndex;
+         case "First": return 0;
+         case "Last": return $List.length(slides) - 1;
+         case "Prev": return oldIndex - 1;
+         case "Next": return oldIndex + 1;
+         case "Go": return _p0._0;
+         default: return _p0._1;}
+   });
    var clampIndex = F2(function (index,slides) {    return A3($Basics.clamp,0,$List.length(slides) - 1,index);});
    var update = F2(function (action,data) {
-      var _p1 = A2($Debug.log,"action",action);
+      var index = A3(newIndex,data.index,action,data.slides);
+      var _p1 = action;
       switch (_p1.ctor)
       {case "NoOp": return data;
          case "Response": var _p2 = _p1._0;
-           return _U.update(data,{slides: _p2,index: A2(clampIndex,_p1._1,_p2)});
-         case "GoAbs": return _U.update(data,{index: A2(clampIndex,_p1._0,data.slides)});
-         case "GoRel": return _U.update(data,{index: A2(clampIndex,data.index + _p1._0,data.slides)});
-         case "First": return _U.update(data,{index: 0});
-         default: return _U.update(data,{index: $List.length(data.slides) - 1});}
+           return _U.update(data,{slides: _p2,index: A2(clampIndex,index,_p2)});
+         default: return _U.update(data,{index: A2(clampIndex,index,data.slides)});}
    });
    var model = A3($Signal.foldp,update,init,actions);
    var history = Elm.Native.Task.make(_elm).performSignal("history",$Hash.tasks(model));
    var title = Elm.Native.Port.make(_elm).outboundSignal("title",function (v) {    return v;},$Title.title(model));
    var main = A2($Signal.map,$View.all,model);
-   return _elm.Main.values = {_op: _op
-                             ,clampIndex: clampIndex
-                             ,update: update
-                             ,init: init
-                             ,response: response
-                             ,hashOnResponse: hashOnResponse
-                             ,responseWithHash: responseWithHash
-                             ,actions: actions
-                             ,model: model
-                             ,main: main};
+   return _elm.Main.values = {_op: _op,clampIndex: clampIndex,newIndex: newIndex,update: update,init: init,actions: actions,model: model,main: main};
 };

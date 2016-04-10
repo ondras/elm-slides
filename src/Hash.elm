@@ -15,7 +15,7 @@ toAction hash =
   if hash == "" then
     Actions.NoOp
   else
-    Actions.GoAbs (toIndex hash)
+    Actions.Go (toIndex hash)
 
 signal' =
   Signal.map toIndex History.hash |> Signal.dropRepeats
