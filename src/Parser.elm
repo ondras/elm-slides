@@ -7,7 +7,7 @@ import Markdown exposing (defaultOptions)
 
 pattern =
   {
-    break = Regex.regex "\\n\\s*-+8<-+",
+    break = Regex.regex "\\n-+8<-+",
     title = Regex.regex "(\\n|^)\\s*#\\s+([^\\n]+)"
   }
 

@@ -7,6 +7,7 @@ import Request
 import Keys
 import Hash
 import View
+import Taps
 import Title
 
 clampIndex index slides =
@@ -54,7 +55,7 @@ init =
   Types.Data [] -1
 
 actions =
-  Signal.mergeMany [ Request.signal, Keys.signal, Hash.signal ]
+  Signal.mergeMany [ Request.signal, Keys.signal, Hash.signal, Taps.signal ]
 
 model =
   Signal.foldp update init actions

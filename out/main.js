@@ -8727,6 +8727,248 @@ Elm.Native.Regex.make = function(localRuntime) {
 	};
 };
 
+Elm.Native = Elm.Native || {};
+Elm.Native.Touch = {};
+Elm.Native.Touch.make = function(localRuntime) {
+	localRuntime.Native = localRuntime.Native || {};
+	localRuntime.Native.Touch = localRuntime.Native.Touch || {};
+	if (localRuntime.Native.Touch.values)
+	{
+		return localRuntime.Native.Touch.values;
+	}
+
+	var Signal = Elm.Signal.make(localRuntime);
+	var NS = Elm.Native.Signal.make(localRuntime);
+	var List = Elm.Native.List.make(localRuntime);
+	var Utils = Elm.Native.Utils.make(localRuntime);
+
+	function Dict() {
+		this.keys = [];
+		this.values = [];
+
+		this.insert = function(key, value) {
+			this.keys.push(key);
+			this.values.push(value);
+		};
+		this.lookup = function(key) {
+			var i = this.keys.indexOf(key);
+			return i >= 0 ? this.values[i] : {x: 0, y: 0, t: 0};
+		};
+		this.remove = function(key) {
+			var i = this.keys.indexOf(key);
+			if (i < 0) return;
+			var t = this.values[i];
+			this.keys.splice(i, 1);
+			this.values.splice(i, 1);
+			return t;
+		};
+		this.clear = function() {
+			this.keys = [];
+			this.values = [];
+		};
+	}
+
+	var root = NS.input('touch', []),
+		tapTime = 500,
+		hasTap = false,
+		tap = { x: 0, y: 0},
+		dict = new Dict();
+
+	function touch(t) {
+		var r = dict.lookup(t.identifier);
+		var point = Utils.getXY(t);
+		return {
+			id: t.identifier,
+			x: point._0,
+			y: point._1,
+			x0: r.x,
+			y0: r.y,
+			t0: r.t
+		 };
+	}
+
+	var node = localRuntime.isFullscreen()
+		? document
+		: localRuntime.node;
+
+	function start(e) {
+		var point = Utils.getXY(e);
+		dict.insert(e.identifier, {
+			x: point._0,
+			y: point._1,
+			t: localRuntime.timer.now()
+		});
+	}
+	function end(e) {
+		var t = dict.remove(e.identifier);
+		if (localRuntime.timer.now() - t.t < tapTime)
+		{
+			hasTap = true;
+			tap = {
+				x: t.x,
+				y: t.y
+			};
+		}
+	}
+
+	function listen(name, f) {
+		function update(e) {
+			for (var i = e.changedTouches.length; i--; ) {
+				f(e.changedTouches[i]);
+			}
+			var ts = new Array(e.touches.length);
+			for (var i = e.touches.length; i--; ) {
+				ts[i] = touch(e.touches[i]);
+			}
+			localRuntime.notify(root.id, ts);
+			e.preventDefault();
+		}
+		localRuntime.addListener([root.id], node, name, update);
+	}
+
+	listen('touchstart', start);
+	listen('touchmove', function(_) {});
+	listen('touchend', end);
+	listen('touchcancel', end);
+	listen('touchleave', end);
+
+	var mouseID = -1;
+	function move(e) {
+		var point = Utils.getXY(e);
+		for (var i = root.value.length; i--; ) {
+			if (root.value[i].id === mouseID)
+			{
+				root.value[i].x = point._0;
+				root.value[i].y = point._1;
+				localRuntime.notify(root.id, root.value);
+				break;
+			}
+		}
+	}
+	localRuntime.addListener([root.id], node, 'mousedown', function down(e) {
+		node.addEventListener('mousemove', move);
+		e.identifier = mouseID;
+		start(e);
+		root.value.push(touch(e));
+		localRuntime.notify(root.id, root.value);
+	});
+	localRuntime.addListener([root.id], document, 'mouseup', function up(e) {
+		node.removeEventListener('mousemove', move);
+		e.identifier = mouseID;
+		end(e);
+		for (var i = root.value.length; i--; ) {
+			if (root.value[i].id === mouseID)
+			{
+				root.value.splice(i, 1);
+				--mouseID;
+				break;
+			}
+		}
+		localRuntime.notify(root.id, root.value);
+	});
+	localRuntime.addListener([root.id], node, 'blur', function blur(e) {
+		node.removeEventListener('mousemove', move);
+		if (root.value.length > 0)
+		{
+			localRuntime.notify(root.id, []);
+			--mouseID;
+		}
+		dict.clear();
+	});
+
+	function dependency(f) {
+		var sig = A2( Signal.map, f, root );
+		root.defaultNumberOfKids += 1;
+		sig.defaultNumberOfKids = 0;
+		return sig;
+	}
+
+	var touches = dependency(List.fromArray);
+
+	var taps = function() {
+		var sig = dependency(function(_) { return tap; });
+		sig.defaultNumberOfKids = 1;
+		function pred(_) {
+			var b = hasTap;
+			hasTap = false;
+			return b;
+		}
+		var sig2 = A3(Signal.filter, pred, {x: 0, y: 0}, sig);
+		sig2.defaultNumberOfKids = 0;
+		return sig2;
+	}();
+
+	return localRuntime.Native.Touch.values = { touches: touches, taps: taps };
+};
+
+Elm.Native = Elm.Native || {};
+Elm.Native.Window = {};
+Elm.Native.Window.make = function make(localRuntime) {
+	localRuntime.Native = localRuntime.Native || {};
+	localRuntime.Native.Window = localRuntime.Native.Window || {};
+	if (localRuntime.Native.Window.values)
+	{
+		return localRuntime.Native.Window.values;
+	}
+
+	var NS = Elm.Native.Signal.make(localRuntime);
+	var Tuple2 = Elm.Native.Utils.make(localRuntime).Tuple2;
+
+
+	function getWidth()
+	{
+		return localRuntime.node.clientWidth;
+	}
+
+
+	function getHeight()
+	{
+		if (localRuntime.isFullscreen())
+		{
+			return window.innerHeight;
+		}
+		return localRuntime.node.clientHeight;
+	}
+
+
+	var dimensions = NS.input('Window.dimensions', Tuple2(getWidth(), getHeight()));
+
+
+	function resizeIfNeeded()
+	{
+		// Do not trigger event if the dimensions have not changed.
+		// This should be most of the time.
+		var w = getWidth();
+		var h = getHeight();
+		if (dimensions.value._0 === w && dimensions.value._1 === h)
+		{
+			return;
+		}
+
+		setTimeout(function() {
+			// Check again to see if the dimensions have changed.
+			// It is conceivable that the dimensions have changed
+			// again while some other event was being processed.
+			w = getWidth();
+			h = getHeight();
+			if (dimensions.value._0 === w && dimensions.value._1 === h)
+			{
+				return;
+			}
+			localRuntime.notify(dimensions.id, Tuple2(w, h));
+		}, 0);
+	}
+
+
+	localRuntime.addListener([dimensions.id], window, 'resize', resizeIfNeeded);
+
+
+	return localRuntime.Native.Window.values = {
+		dimensions: dimensions,
+		resizeIfNeeded: resizeIfNeeded
+	};
+};
+
 Elm.Regex = Elm.Regex || {};
 Elm.Regex.make = function (_elm) {
    "use strict";
@@ -8756,6 +8998,30 @@ Elm.Regex.make = function (_elm) {
                               ,Match: Match
                               ,All: All
                               ,AtMost: AtMost};
+};
+Elm.Touch = Elm.Touch || {};
+Elm.Touch.make = function (_elm) {
+   "use strict";
+   _elm.Touch = _elm.Touch || {};
+   if (_elm.Touch.values) return _elm.Touch.values;
+   var _U = Elm.Native.Utils.make(_elm),$Native$Touch = Elm.Native.Touch.make(_elm),$Signal = Elm.Signal.make(_elm),$Time = Elm.Time.make(_elm);
+   var _op = {};
+   var taps = $Native$Touch.taps;
+   var touches = $Native$Touch.touches;
+   var Touch = F6(function (a,b,c,d,e,f) {    return {x: a,y: b,id: c,x0: d,y0: e,t0: f};});
+   return _elm.Touch.values = {_op: _op,touches: touches,taps: taps,Touch: Touch};
+};
+Elm.Window = Elm.Window || {};
+Elm.Window.make = function (_elm) {
+   "use strict";
+   _elm.Window = _elm.Window || {};
+   if (_elm.Window.values) return _elm.Window.values;
+   var _U = Elm.Native.Utils.make(_elm),$Basics = Elm.Basics.make(_elm),$Native$Window = Elm.Native.Window.make(_elm),$Signal = Elm.Signal.make(_elm);
+   var _op = {};
+   var dimensions = $Native$Window.dimensions;
+   var width = A2($Signal.map,$Basics.fst,dimensions);
+   var height = A2($Signal.map,$Basics.snd,dimensions);
+   return _elm.Window.values = {_op: _op,dimensions: dimensions,width: width,height: height};
 };
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 
@@ -11361,11 +11627,11 @@ Elm.Hash.make = function (_elm) {
    };
    var currentIndex = function (model) {    return $Signal.dropRepeats(A2($Signal.map,function (_) {    return _.index;},model));};
    var tasks = function (model) {    return A2($Signal.map,indexToTask,currentIndex(model));};
-   var toIndex = function (hash) {    return function (x) {    return x - 1;}(A2($Result.withDefault,1,$String.toInt(A2($String.dropLeft,1,hash))));};
-   var toAction = function (hash) {    return _U.eq(hash,"") ? $Actions.NoOp : $Actions.Go(toIndex(hash));};
+   var toAction = function (hash) {
+      return $Actions.Go(function (x) {    return x - 1;}(A2($Result.withDefault,1,$String.toInt(A2($String.dropLeft,1,hash)))));
+   };
    var signal = $Signal.dropRepeats(A2($Signal.map,toAction,$History.hash));
-   var signal$ = $Signal.dropRepeats(A2($Signal.map,toIndex,$History.hash));
-   return _elm.Hash.values = {_op: _op,signal: signal,signal$: signal$,tasks: tasks};
+   return _elm.Hash.values = {_op: _op,signal: signal,tasks: tasks};
 };
 Elm.Keys = Elm.Keys || {};
 Elm.Keys.make = function (_elm) {
@@ -11410,7 +11676,7 @@ Elm.Parser.make = function (_elm) {
    var _op = {};
    var lastSubmatch = function (match) {    return A2($Maybe.withDefault,$Maybe.Just(""),$List.head($List.reverse(match.submatches)));};
    var options = _U.update($Markdown.defaultOptions,{smartypants: true});
-   var pattern = {$break: $Regex.regex("\\n\\s*-+8<-+"),title: $Regex.regex("(\\n|^)\\s*#\\s+([^\\n]+)")};
+   var pattern = {$break: $Regex.regex("\\n-+8<-+"),title: $Regex.regex("(\\n|^)\\s*#\\s+([^\\n]+)")};
    var title = function (str) {
       var matches = A3($Regex.find,$Regex.AtMost(1),pattern.title,str);
       var _p0 = $List.head(matches);
@@ -11481,6 +11747,26 @@ Elm.View.make = function (_elm) {
    var display = F2(function (current,index) {    return _U.eq(current,index) ? "block" : "none";});
    return _elm.View.values = {_op: _op,all: all};
 };
+Elm.Taps = Elm.Taps || {};
+Elm.Taps.make = function (_elm) {
+   "use strict";
+   _elm.Taps = _elm.Taps || {};
+   if (_elm.Taps.values) return _elm.Taps.values;
+   var _U = Elm.Native.Utils.make(_elm),
+   $Actions = Elm.Actions.make(_elm),
+   $Basics = Elm.Basics.make(_elm),
+   $Debug = Elm.Debug.make(_elm),
+   $List = Elm.List.make(_elm),
+   $Maybe = Elm.Maybe.make(_elm),
+   $Result = Elm.Result.make(_elm),
+   $Signal = Elm.Signal.make(_elm),
+   $Touch = Elm.Touch.make(_elm),
+   $Window = Elm.Window.make(_elm);
+   var _op = {};
+   var combine = F2(function (tap,width) {    return _U.cmp(tap.x,width / 2 | 0) > 0 ? $Actions.Next : $Actions.Prev;});
+   var signal = A3($Signal.map2,combine,$Signal.dropRepeats($Touch.taps),$Window.width);
+   return _elm.Taps.values = {_op: _op,signal: signal};
+};
 Elm.Title = Elm.Title || {};
 Elm.Title.make = function (_elm) {
    "use strict";
@@ -11522,12 +11808,13 @@ Elm.Main.make = function (_elm) {
    $Request = Elm.Request.make(_elm),
    $Result = Elm.Result.make(_elm),
    $Signal = Elm.Signal.make(_elm),
+   $Taps = Elm.Taps.make(_elm),
    $Task = Elm.Task.make(_elm),
    $Title = Elm.Title.make(_elm),
    $Types = Elm.Types.make(_elm),
    $View = Elm.View.make(_elm);
    var _op = {};
-   var actions = $Signal.mergeMany(_U.list([$Request.signal,$Keys.signal,$Hash.signal]));
+   var actions = $Signal.mergeMany(_U.list([$Request.signal,$Keys.signal,$Hash.signal,$Taps.signal]));
    var init = A2($Types.Data,_U.list([]),-1);
    var request = Elm.Native.Task.make(_elm).perform($Request.task("data.md"));
    var newIndex = F3(function (oldIndex,action,slides) {
