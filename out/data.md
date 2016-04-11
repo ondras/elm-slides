@@ -10,7 +10,7 @@
 
  - Specified in a separate Markdown document
  - Check out this presentation's [source](data.md)
- - Individual slides are separated via scissors:
+ - Individual slides are separated with scissors:
 
 ~~~
  ...
