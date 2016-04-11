@@ -55,7 +55,7 @@ init =
   Types.Data [] -1
 
 actions =
-  Signal.mergeMany [ Request.signal, Keys.signal, Hash.signal, Taps.signal ]
+  Signal.mergeMany [ Request.signal, Keys.signal, Hash.signal ]
 
 model =
   Signal.foldp update init actions

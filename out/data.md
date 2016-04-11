@@ -35,7 +35,6 @@
 
 # Additional features
 
- - Touch control by tapping left/right half of the window
  - URL/hash for permalinks and navigation
  - Dynamic title based on the first slide
  - Skinnable
