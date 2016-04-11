@@ -2,7 +2,7 @@
 
  - Welcome to the sample presentation
  - Print the page as usual
- - Press <kbd>Space</kbd> to continue...
+ - Press <kbd>&rarr;</kbd> to continue...
 
 --8<------
 
