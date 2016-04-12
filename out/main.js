@@ -5449,7 +5449,7 @@ Elm.Native.History.make = function(localRuntime){
   // href : Signal String
   var href = NS.input('History.href', window.location.href);
 
-  localRuntime.addListener([path.id, length.id], node, 'popstate', function getPath(event){
+  localRuntime.addListener([href.id, path.id, length.id], node, 'popstate', function getPath(event){
     localRuntime.notify(path.id, window.location.pathname);
     localRuntime.notify(length.id, window.history.length);
     localRuntime.notify(hash.id, window.location.hash);
@@ -5460,12 +5460,25 @@ Elm.Native.History.make = function(localRuntime){
     localRuntime.notify(hash.id, window.location.hash);
   });
 
+  // setHash : String -> Task error ()
+  var setHash = function(hash){
+    return Task.asyncFunction(function(callback){
+      setTimeout(function(){
+        location.hash = hash;
+        localRuntime.notify(hash.id, window.location.hash);
+        localRuntime.notify(length.id, window.history.length);
+        localRuntime.notify(href.id, window.location.href);
+      },0);
+      return callback(Task.succeed(Utils.Tuple0));
+    });
+  };
+
   // setPath : String -> Task error ()
   var setPath = function(urlpath){
     return Task.asyncFunction(function(callback){
       setTimeout(function(){
-        localRuntime.notify(path.id, urlpath);
         window.history.pushState({}, "", urlpath);
+        localRuntime.notify(path.id, window.location.pathname);
         localRuntime.notify(hash.id, window.location.hash);
         localRuntime.notify(length.id, window.history.length);
         localRuntime.notify(href.id, window.location.href);
@@ -5478,8 +5491,8 @@ Elm.Native.History.make = function(localRuntime){
   var replacePath = function(urlpath){
     return Task.asyncFunction(function(callback){
       setTimeout(function(){
-        localRuntime.notify(path.id, urlpath);
         window.history.replaceState({}, "", urlpath);
+        localRuntime.notify(path.id, window.location.pathname);
         localRuntime.notify(hash.id, window.location.hash);
         localRuntime.notify(length.id, window.history.length);
         localRuntime.notify(href.id, window.location.href);
@@ -5527,6 +5540,7 @@ Elm.Native.History.make = function(localRuntime){
 
   return {
     path        : path,
+    setHash     : setHash,
     setPath     : setPath,
     replacePath : replacePath,
     go          : go,
@@ -5563,7 +5577,9 @@ Elm.History.make = function (_elm) {
    var go = $Native$History.go;
    var replacePath = $Native$History.replacePath;
    var setPath = $Native$History.setPath;
+   var setHash = $Native$History.setHash;
    return _elm.History.values = {_op: _op
+                                ,setHash: setHash
                                 ,setPath: setPath
                                 ,replacePath: replacePath
                                 ,go: go
@@ -11622,9 +11638,7 @@ Elm.Hash.make = function (_elm) {
    $String = Elm.String.make(_elm),
    $Task = Elm.Task.make(_elm);
    var _op = {};
-   var indexToTask = function (index) {
-      return _U.cmp(index,0) > -1 ? $History.setPath(A2($Basics._op["++"],"#",$Basics.toString(index + 1))) : $Task.succeed({ctor: "_Tuple0"});
-   };
+   var indexToTask = function (index) {    return _U.cmp(index,0) > -1 ? $History.setHash($Basics.toString(index + 1)) : $Task.succeed({ctor: "_Tuple0"});};
    var currentIndex = function (model) {    return $Signal.dropRepeats(A2($Signal.map,function (_) {    return _.index;},model));};
    var tasks = function (model) {    return A2($Signal.map,indexToTask,currentIndex(model));};
    var toAction = function (hash) {

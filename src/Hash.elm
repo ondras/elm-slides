@@ -20,7 +20,7 @@ currentIndex model =
 
 indexToTask index =
   if index >= 0 then
-    History.setPath ("#" ++ toString (index+1))
+    History.setHash (toString (index+1))
   else
     Task.succeed ()
   
