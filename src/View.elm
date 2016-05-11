@@ -1,6 +1,8 @@
-module View (all) where
+module View exposing (all)
 
+import Msg
 import Html exposing (div, section)
+import Html.App as Html
 import Html.Attributes exposing (classList)
 
 display current index =
@@ -21,4 +23,4 @@ slides data =
   List.indexedMap (slide data.index) data.slides
 
 all data =
-  div [] (slides data)
+  Html.map (always Msg.NoOp) (div [] (slides data))

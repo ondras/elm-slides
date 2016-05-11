@@ -1,4 +1,4 @@
-module Hash (signal, tasks) where
+module Hash exposing (signal, tasks)
 
 import History
 import Actions
@@ -15,7 +15,7 @@ toAction hash =
 signal =
   Signal.map toAction History.hash |> Signal.dropRepeats
 
-currentIndex model = 
+currentIndex model =
   Signal.map .index model |> Signal.dropRepeats
 
 indexToTask index =
@@ -23,6 +23,6 @@ indexToTask index =
     History.setHash (toString (index+1))
   else
     Task.succeed ()
-  
+
 tasks model =
   Signal.map indexToTask (currentIndex model)

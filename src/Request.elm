@@ -1,25 +1,15 @@
-module Request (signal, task) where
+module Request exposing (command)
 
-import Actions
+import Msg
 import Parser
 import Task exposing (andThen)
 import Http
-import Hash
 
-box =
-  Signal.mailbox []
+responseOk data =
+  Msg.Response (Parser.parse data)
 
-merge slides action =
-  case action of
-    Actions.Go index -> Actions.Response slides index
-    _ -> action
+responseFail err =
+  Msg.Response []
 
-hashOnResponse =
-  Signal.sampleOn box.signal Hash.signal
-
-signal =
-  Signal.map2 merge box.signal hashOnResponse 
-
-
-task url =
-  Http.getString url `andThen` (Parser.parse >> Signal.send box.address)
+command url =
+  Task.perform responseFail responseOk (Http.getString url)

@@ -1,11 +1,11 @@
-module Title (title) where
+module Title exposing (title)
 
 modelToTitle model =
   case List.head model.slides of
-    Nothing -> 
+    Nothing ->
       ""
 
-    Just slide -> 
+    Just slide ->
       "(" ++ toString (model.index+1) ++ ") " ++ slide.title
 
 title model =

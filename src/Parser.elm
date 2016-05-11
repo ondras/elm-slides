@@ -1,7 +1,6 @@
-module Parser (parse) where
+module Parser exposing (parse)
 
-import Actions
-import Types
+import Types exposing (Slide)
 import Regex
 import Markdown exposing (defaultOptions)
 
@@ -11,9 +10,9 @@ pattern =
     title = Regex.regex "(\\n|^)\\s*#\\s+([^\\n]+)"
   }
 
-options = 
+options =
     { defaultOptions | smartypants = True }
-    
+
 lastSubmatch match =
   List.reverse match.submatches
     |> List.head
@@ -29,9 +28,8 @@ title str =
       Just match -> Maybe.withDefault "" (lastSubmatch match)
 
 slide str =
-  Types.Slide (title str) (Markdown.toHtmlWith options str)
+  Slide (title str) (Markdown.toHtmlWith options [] str)
 
 parse str =
   Regex.split Regex.All pattern.break str
     |> List.map slide
---    |> Actions.Response 

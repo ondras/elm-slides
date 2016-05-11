@@ -1,23 +1,23 @@
-module Keys (signal) where
+module Keys exposing (subscription)
 
 import Set
 import Keyboard
-import Actions
+import Msg
 
-prev = Set.fromList [8, 33, 37, 38]  
+prev = Set.fromList [8, 33, 37, 38]
 next = Set.fromList [32, 34, 39, 40]
 
-keysToAction keys =
-  if Set.member 36 keys then
-    Actions.First
-  else if Set.member 35 keys then
-    Actions.Last
-  else if Set.size (Set.intersect keys prev) > 0 then
-    Actions.Prev
-  else if Set.size (Set.intersect keys next) > 0 then
-    Actions.Next
+keysToMessage keyCode =
+  if keyCode == 36 then
+    Msg.First
+  else if keyCode == 35 then
+    Msg.Last
+  else if Set.member keyCode prev then
+    Msg.Prev
+  else if Set.member keyCode next then
+    Msg.Next
   else
-    Actions.NoOp
+    Msg.NoOp
 
-signal = 
-  Signal.map keysToAction Keyboard.keysDown
+subscription =
+  Keyboard.downs keysToMessage

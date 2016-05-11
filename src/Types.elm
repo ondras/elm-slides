@@ -1,10 +1,10 @@
-module Types where
+module Types exposing (..)
 
 import Html exposing (Html)
 
 type alias Slide = {
   title: String,
-  node: Html
+  node: Html Never
 }
 
 type alias Data = {

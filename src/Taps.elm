@@ -1,4 +1,4 @@
-module Taps (signal) where
+module Taps exposing (signal)
 
 import Actions
 import Touch
@@ -11,4 +11,4 @@ combine tap width =
     Actions.Prev
 
 signal =
-  Signal.map2 combine (Touch.taps |> Signal.dropRepeats) Window.width 
+  Signal.map2 combine (Touch.taps |> Signal.dropRepeats) Window.width

@@ -1,64 +1,55 @@
-import Task
-import Http
-
-import Types
-import Actions
+import Types exposing (Data)
+import Msg
 import Request
 import Keys
-import Hash
 import View
-import Taps
-import Title
+-- import Hash
+-- import Taps
+-- import Title
+
+import Html.App exposing (program)
+
+-- port title : String -> Cmd msg
 
 clampIndex index slides =
   clamp 0 (List.length slides - 1) index
 
-newIndex oldIndex action slides =
-  case action of
-    Actions.NoOp -> oldIndex
-    Actions.First -> 0
-    Actions.Last -> List.length slides-1
-    Actions.Prev -> oldIndex-1
-    Actions.Next -> oldIndex+1
-    Actions.Go index -> index
-    Actions.Response _ index -> index
+newIndex oldIndex msg slides =
+  case msg of
+    Msg.NoOp -> oldIndex
+    Msg.First -> 0
+    Msg.Last -> List.length slides-1
+    Msg.Prev -> oldIndex-1
+    Msg.Next -> oldIndex+1
+    Msg.Go index -> index
+    Msg.Response _ -> 0
 
-update action data =
+update msg data =
   let
     index =
-      newIndex data.index action data.slides
+      newIndex data.index msg data.slides
   in
-    case action of
-      Actions.NoOp -> data
+    case msg of
+      Msg.NoOp -> data ! [Cmd.none]
 
-      Actions.Response slides _ ->
+      Msg.Response slides ->
         { data |
           slides = slides,
           index = clampIndex index slides
-        }
-        
-      _ -> { data | index = clampIndex index data.slides }
+        } ! [Cmd.none]
 
-port request : Task.Task Http.Error ()
-port request =
-  Request.task "data.md"
-
-port history : Signal (Task.Task error ())
-port history =
-  Hash.tasks model
-
-port title : Signal String
-port title =
-  Title.title model
+      _ -> { data | index = clampIndex index data.slides } ! [Cmd.none]
 
 init =
-  Types.Data [] -1
+  (Data [] -1, Request.command "data.md")
 
-actions =
-  Signal.mergeMany [ Request.signal, Keys.signal, Hash.signal ]
+subscriptions _ =
+  Keys.subscription
 
-model =
-  Signal.foldp update init actions
-  
 main =
-  Signal.map View.all model
+  program {
+    init = init,
+    view = View.all,
+    update = update,
+    subscriptions = subscriptions
+  }
