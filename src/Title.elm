@@ -1,4 +1,6 @@
-module Title exposing (title)
+port module Title exposing (setTitle)
+
+port title : String -> Cmd msg
 
 modelToTitle model =
   case List.head model.slides of
@@ -8,5 +10,5 @@ modelToTitle model =
     Just slide ->
       "(" ++ toString (model.index+1) ++ ") " ++ slide.title
 
-title model =
-  Signal.map modelToTitle model
+setTitle model =
+  title (modelToTitle model)

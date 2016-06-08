@@ -12,6 +12,11 @@
 		<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.3.0/styles/default.min.css" />
 	</head>
 	<body>
-		<script>Elm.Main.fullscreen()</script>
+		<script>
+			var app = Elm.Main.fullscreen();
+			app.ports.title.subscribe(function(title) {
+				document.title = title;
+			});
+		</script>
 	</body>
 </html>

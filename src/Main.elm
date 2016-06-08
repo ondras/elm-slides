@@ -5,11 +5,9 @@ import Keys
 import View
 -- import Hash
 -- import Taps
--- import Title
+import Title exposing (setTitle)
 
 import Html.App exposing (program)
-
--- port title : String -> Cmd msg
 
 clampIndex index slides =
   clamp 0 (List.length slides - 1) index
@@ -32,13 +30,13 @@ update msg data =
     case msg of
       Msg.NoOp -> data ! [Cmd.none]
 
-      Msg.Response slides ->
-        { data |
-          slides = slides,
-          index = clampIndex index slides
-        } ! [Cmd.none]
+      Msg.Response (Debug.log "response" slides) ->
+        let newModel = { data | slides = slides, index = clampIndex index slides }
+        in (newModel, setTitle newModel)
 
-      _ -> { data | index = clampIndex index data.slides } ! [Cmd.none]
+      _ ->
+        let newModel = { data | index = clampIndex index data.slides }
+        in (newModel, setTitle newModel)
 
 init =
   (Data [] -1, Request.command "data.md")
