@@ -1,28 +1,20 @@
-module Hash exposing (signal, tasks)
+port module Hash exposing (setHash, listen, hashToIndex)
+import Msg
+import String
 
-import History
-import Actions
-import Task
-import String exposing (dropLeft, toInt)
+port hash : String -> Cmd msg
+port hashchange : (String -> msg) -> Sub msg
 
-toAction hash =
-  dropLeft 1 hash
-    |> toInt
+setHash model =
+  hash (toString (model.index+1))
+
+toMessage str =
+  Msg.Go (hashToIndex str)
+
+hashToIndex str =
+  String.toInt str
     |> Result.withDefault 1
     |> (\x -> x-1)
-    |> Actions.Go
 
-signal =
-  Signal.map toAction History.hash |> Signal.dropRepeats
-
-currentIndex model =
-  Signal.map .index model |> Signal.dropRepeats
-
-indexToTask index =
-  if index >= 0 then
-    History.setHash (toString (index+1))
-  else
-    Task.succeed ()
-
-tasks model =
-  Signal.map indexToTask (currentIndex model)
+listen =
+  hashchange toMessage

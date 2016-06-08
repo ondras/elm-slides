@@ -13,10 +13,25 @@
 	</head>
 	<body>
 		<script>
-			var app = Elm.Main.fullscreen();
+			function getHash() {
+				return (location.hash ? location.hash.substring(1) : "");
+			}
+
+			var app = Elm.Main.fullscreen({
+				hash: getHash()
+			});
+
 			app.ports.title.subscribe(function(title) {
 				document.title = title;
 			});
+
+			app.ports.hash.subscribe(function(hash) {
+				location.hash = hash;
+			});
+
+			window.addEventListener("hashchange", function() {
+				app.ports.hashchange.send(getHash());
+			})
 		</script>
 	</body>
 </html>

@@ -4,10 +4,12 @@ import Request
 import Keys
 import View
 -- import Hash
--- import Taps
 import Title exposing (setTitle)
+import Hash exposing (setHash, hashToIndex)
 
-import Html.App exposing (program)
+import Html.App exposing (programWithFlags)
+
+type alias Flags = { hash : String }
 
 clampIndex index slides =
   clamp 0 (List.length slides - 1) index
@@ -20,7 +22,7 @@ newIndex oldIndex msg slides =
     Msg.Prev -> oldIndex-1
     Msg.Next -> oldIndex+1
     Msg.Go index -> index
-    Msg.Response _ -> 0
+    Msg.Response _ -> oldIndex
 
 update msg data =
   let
@@ -30,22 +32,23 @@ update msg data =
     case msg of
       Msg.NoOp -> data ! [Cmd.none]
 
-      Msg.Response (Debug.log "response" slides) ->
+      Msg.Response slides ->
         let newModel = { data | slides = slides, index = clampIndex index slides }
-        in (newModel, setTitle newModel)
+        in newModel ! [setTitle newModel, setHash newModel]
 
       _ ->
         let newModel = { data | index = clampIndex index data.slides }
-        in (newModel, setTitle newModel)
+        in newModel ! [setTitle newModel, setHash newModel]
 
-init =
-  (Data [] -1, Request.command "data.md")
+init : Flags -> (Data, Cmd Msg.Msg)
+init flags =
+  Data [] (hashToIndex flags.hash) ! [Request.command "data.md"]
 
 subscriptions _ =
-  Keys.subscription
+  Sub.batch [ Keys.subscription, Hash.listen ]
 
 main =
-  program {
+  programWithFlags {
     init = init,
     view = View.all,
     update = update,

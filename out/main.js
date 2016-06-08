@@ -8562,6 +8562,31 @@ var _ondras$elm_slides$Msg$Response = function (a) {
 };
 var _ondras$elm_slides$Msg$NoOp = {ctor: 'NoOp'};
 
+var _ondras$elm_slides$Hash$hashToIndex = function (str) {
+	return function (x) {
+		return x - 1;
+	}(
+		A2(
+			_elm_lang$core$Result$withDefault,
+			1,
+			_elm_lang$core$String$toInt(str)));
+};
+var _ondras$elm_slides$Hash$toMessage = function (str) {
+	return _ondras$elm_slides$Msg$Go(
+		_ondras$elm_slides$Hash$hashToIndex(str));
+};
+var _ondras$elm_slides$Hash$hash = _elm_lang$core$Native_Platform.outgoingPort(
+	'hash',
+	function (v) {
+		return v;
+	});
+var _ondras$elm_slides$Hash$setHash = function (model) {
+	return _ondras$elm_slides$Hash$hash(
+		_elm_lang$core$Basics$toString(model.index + 1));
+};
+var _ondras$elm_slides$Hash$hashchange = _elm_lang$core$Native_Platform.incomingPort('hashchange', _elm_lang$core$Json_Decode$string);
+var _ondras$elm_slides$Hash$listen = _ondras$elm_slides$Hash$hashchange(_ondras$elm_slides$Hash$toMessage);
+
 var _ondras$elm_slides$Keys$next = _elm_lang$core$Set$fromList(
 	_elm_lang$core$Native_List.fromArray(
 		[32, 34, 39, 40]));
@@ -8704,16 +8729,22 @@ var _ondras$elm_slides$Title$setTitle = function (model) {
 };
 
 var _ondras$elm_slides$Main$subscriptions = function (_p0) {
-	return _ondras$elm_slides$Keys$subscription;
-};
-var _ondras$elm_slides$Main$init = {
-	ctor: '_Tuple2',
-	_0: A2(
-		_ondras$elm_slides$Types$Data,
+	return _elm_lang$core$Platform_Sub$batch(
 		_elm_lang$core$Native_List.fromArray(
-			[]),
-		-1),
-	_1: _ondras$elm_slides$Request$command('data.md')
+			[_ondras$elm_slides$Keys$subscription, _ondras$elm_slides$Hash$listen]));
+};
+var _ondras$elm_slides$Main$init = function (flags) {
+	return A2(
+		_elm_lang$core$Platform_Cmd_ops['!'],
+		A2(
+			_ondras$elm_slides$Types$Data,
+			_elm_lang$core$Native_List.fromArray(
+				[]),
+			_ondras$elm_slides$Hash$hashToIndex(flags.hash)),
+		_elm_lang$core$Native_List.fromArray(
+			[
+				_ondras$elm_slides$Request$command('data.md')
+			]));
 };
 var _ondras$elm_slides$Main$newIndex = F3(
 	function (oldIndex, msg, slides) {
@@ -8732,7 +8763,7 @@ var _ondras$elm_slides$Main$newIndex = F3(
 			case 'Go':
 				return _p1._0;
 			default:
-				return 0;
+				return oldIndex;
 		}
 	});
 var _ondras$elm_slides$Main$clampIndex = F2(
@@ -8759,30 +8790,46 @@ var _ondras$elm_slides$Main$update = F2(
 				var newModel = _elm_lang$core$Native_Utils.update(
 					data,
 					{
-						slides: A2(_elm_lang$core$Debug$log, 'slides', _p3),
+						slides: _p3,
 						index: A2(_ondras$elm_slides$Main$clampIndex, index, _p3)
 					});
-				return {
-					ctor: '_Tuple2',
-					_0: newModel,
-					_1: _ondras$elm_slides$Title$setTitle(newModel)
-				};
+				return A2(
+					_elm_lang$core$Platform_Cmd_ops['!'],
+					newModel,
+					_elm_lang$core$Native_List.fromArray(
+						[
+							_ondras$elm_slides$Title$setTitle(newModel),
+							_ondras$elm_slides$Hash$setHash(newModel)
+						]));
 			default:
 				var newModel = _elm_lang$core$Native_Utils.update(
 					data,
 					{
 						index: A2(_ondras$elm_slides$Main$clampIndex, index, data.slides)
 					});
-				return {
-					ctor: '_Tuple2',
-					_0: newModel,
-					_1: _ondras$elm_slides$Title$setTitle(newModel)
-				};
+				return A2(
+					_elm_lang$core$Platform_Cmd_ops['!'],
+					newModel,
+					_elm_lang$core$Native_List.fromArray(
+						[
+							_ondras$elm_slides$Title$setTitle(newModel),
+							_ondras$elm_slides$Hash$setHash(newModel)
+						]));
 		}
 	});
 var _ondras$elm_slides$Main$main = {
-	main: _elm_lang$html$Html_App$program(
-		{init: _ondras$elm_slides$Main$init, view: _ondras$elm_slides$View$all, update: _ondras$elm_slides$Main$update, subscriptions: _ondras$elm_slides$Main$subscriptions})
+	main: _elm_lang$html$Html_App$programWithFlags(
+		{init: _ondras$elm_slides$Main$init, view: _ondras$elm_slides$View$all, update: _ondras$elm_slides$Main$update, subscriptions: _ondras$elm_slides$Main$subscriptions}),
+	flags: A2(
+		_elm_lang$core$Json_Decode$andThen,
+		A2(_elm_lang$core$Json_Decode_ops[':='], 'hash', _elm_lang$core$Json_Decode$string),
+		function (hash) {
+			return _elm_lang$core$Json_Decode$succeed(
+				{hash: hash});
+		})
+};
+var _ondras$elm_slides$Main$Flags = function (a) {
+	return {hash: a};
 };
 
 var Elm = {};
